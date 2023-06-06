@@ -325,7 +325,6 @@ class EditDialog(QDialog):
         self.close()
 
 
-
 # Dialog Attributes for Delete
 class DeleteDialog(QDialog):
     def __init__(self):
@@ -363,7 +362,6 @@ class DeleteDialog(QDialog):
 
         # Commit changes, Close connection to database and cursor
         DatabaseConnection().close_connection(connection, cursor)
-
 
         # Create a message box to relay deletion was successful
         confirmation_widget = QMessageBox()
