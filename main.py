@@ -3,7 +3,7 @@ import sys
 
 from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QGridLayout, \
     QLineEdit, QPushButton, QMainWindow, QTableWidget, QTableWidgetItem, QDialog, \
-    QVBoxLayout, QComboBox, QToolBar, QStatusBar
+    QVBoxLayout, QComboBox, QToolBar, QStatusBar, QMessageBox
 
 from PyQt6.QtGui import QAction, QIcon
 
@@ -18,8 +18,8 @@ class MainWindow(QMainWindow):
 
         # Menu items
         file_menu_item = self.menuBar().addMenu("&File")
-        help_menu_item = self.menuBar().addMenu("&Help")
         edit_menu_item = self.menuBar().addMenu("&Edit")
+        help_menu_item = self.menuBar().addMenu("&Help")
 
         # Add student menu item and action with toolbar icon binding to action
         add_student_action = QAction(QIcon("icons/add.png"), "Add Student", self)
@@ -29,6 +29,7 @@ class MainWindow(QMainWindow):
         # About menu item and action
         about_action = QAction("About", self)
         help_menu_item.addAction(about_action)
+        about_action.triggered.connect(self.about)
 
         # Edit menu SEARCH item and action with toolbar icon binding to action
         search_action = QAction(QIcon("icons/search.png"), "Search", self)
@@ -121,6 +122,10 @@ class MainWindow(QMainWindow):
     def delete(self):
         delete_dialog = DeleteDialog()
         delete_dialog.exec()
+
+    def about(self):
+        about_dialog = AboutDialog()
+        about_dialog.exec()
 
 
 # Dialog Attributes for Insert
@@ -247,7 +252,7 @@ class EditDialog(QDialog):
         index = student_management_sys.table.currentRow()
 
         # Get ID from selected Row
-        self.student_id = student_management_sys.table.item(index, 0)
+        self.student_id = student_management_sys.table.item(index, 0).text()
 
         # Get student name
         student_name = student_management_sys.table.item(index, 1).text()
@@ -302,14 +307,75 @@ class EditDialog(QDialog):
         student_management_sys.load_data()
 
 
-
 # Dialog Attributes for Delete
 class DeleteDialog(QDialog):
-    pass
+    def __init__(self):
+        super().__init__()
+
+        # Set Window Attributes
+        self.setWindowTitle("Delete Student Data")
+
+        layout = QGridLayout()
+        confirmation = QLabel("Are you sure you want to delete?")
+        yes = QPushButton("Yes")
+        no = QPushButton("No")
+
+        layout.addWidget(confirmation, 0, 0, 1, 2)
+        layout.addWidget(yes, 1, 0)
+        layout.addWidget(no, 1, 1)
+        self.setLayout(layout)
+
+        yes.clicked.connect(self.delete_student)
+
+    # Delete Method
+    def delete_student(self):
+        # Connect to database
+        connection = sqlite3.connect("database.db")
+        cursor = connection.cursor()
+
+        # Get table row and column of student to edit
+        index = student_management_sys.table.currentRow()
+
+        # Get ID from selected Row
+        student_id = student_management_sys.table.item(index, 0).text()
+
+        # Execute SQL DELETE query using student ID
+        cursor.execute("DELETE FROM students WHERE id = ?", (student_id, ))
+
+        # Commit changes to db and close connections, refresh app table
+        connection.commit()
+        cursor.close()
+        connection.close()
+        student_management_sys.load_data()
+
+        # Close delete dialog window
+        self.close()
+
+        # Create a message box to relay deletion was successful
+        confirmation_widget = QMessageBox()
+        confirmation_widget.setWindowTitle("Success")
+        confirmation_widget.setText("The Record Deleted Successfully!")
+        confirmation_widget.exec()
 
 
-app = QApplication(sys.argv)
-student_management_sys = MainWindow()
-student_management_sys.show()
-student_management_sys.load_data()
-sys.exit(app.exec())
+# About Inheriting from 'QMessageBox' simple child version of a QDialog
+class AboutDialog(QMessageBox):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("About")
+
+        # Content for about section
+        content = "I built this academic management app as I learned PyQt6 and it's component libraries. " \
+                  "I used object oriented architecture to keep my code organized and scalable." \
+                  " A SQL database was used store records and 'CRUD' methods were used to managed it's contents."
+
+        # Use set text to content
+        self.setText(content)
+
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    student_management_sys = MainWindow()
+    student_management_sys.show()
+    student_management_sys.load_data()
+    sys.exit(app.exec())
