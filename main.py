@@ -10,6 +10,26 @@ from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtCore import Qt
 
 
+# Database connection class
+class DatabaseConnection:
+    def __init__(self, database_file="database.db"):
+        self.database_file = database_file
+
+    def connect(self):
+        # Establish connection to database and create cursor
+        connection = sqlite3.connect(self.database_file)
+        cursor = connection.cursor()
+
+        # return connection and cursor, destructure variables in creation of instances
+        return connection, cursor
+
+    def close_connection(self, connection, cursor):
+
+        # Commit changes to db and close connections, refresh app table
+        return connection.commit(), cursor.close(), connection.close(), student_management_sys.load_data()
+
+
+# App Main Window class
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -18,7 +38,7 @@ class MainWindow(QMainWindow):
 
         # Menu items
         file_menu_item = self.menuBar().addMenu("&File")
-        edit_menu_item = self.menuBar().addMenu("&Edit")
+        utility_menu_item = self.menuBar().addMenu("&Utility")
         help_menu_item = self.menuBar().addMenu("&Help")
 
         # Add student menu item and action with toolbar icon binding to action
@@ -31,10 +51,10 @@ class MainWindow(QMainWindow):
         help_menu_item.addAction(about_action)
         about_action.triggered.connect(self.about)
 
-        # Edit menu SEARCH item and action with toolbar icon binding to action
+        # SEARCH item and action with toolbar icon binding to action
         search_action = QAction(QIcon("icons/search.png"), "Search", self)
         search_action.triggered.connect(self.search)
-        edit_menu_item.addAction(search_action)
+        utility_menu_item.addAction(search_action)
 
         # Toolbar widget and elements, toolbar is also movable
         toolbar = QToolBar()
@@ -85,7 +105,7 @@ class MainWindow(QMainWindow):
     # Load SQL Database data in PyQt
     def load_data(self):
         # Connect SQL database
-        connection = sqlite3.connect("database.db")
+        connection, cursor = DatabaseConnection().connect()
         results = connection.execute("SELECT * FROM students")
 
         # Initialize table number to 0
@@ -171,18 +191,17 @@ class InsertDialog(QDialog):
         mobile = self.mobile_number.text()
 
         # Connect to database and create cursor
-        connection = sqlite3.connect("database.db")
-        cursor = connection.cursor()
+        connection, cursor = DatabaseConnection().connect()
 
         # Use the cursor to destructure and INSERT reference variables into related db columns
         cursor.execute("INSERT INTO students (name, course, mobile) VALUES (?, ?, ?)",
                        (name, course, mobile))
 
-        # Commit changes and close cursor and db connection
-        connection.commit()
-        cursor.close()
-        connection.close()
-        student_management_sys.load_data()
+        # Commit changes, Close connection to database and cursor
+        DatabaseConnection().close_connection(connection, cursor)
+
+        # Close window after entry
+        self.close()
 
 
 # Dialog Attributes for Search
@@ -203,7 +222,7 @@ class SearchDialog(QDialog):
         search_layout.addWidget(self.search_student_name)
 
         # Search button
-        search_btn = QPushButton("Register")
+        search_btn = QPushButton("Search")
         search_btn.clicked.connect(self.search_student)
         search_layout.addWidget(search_btn)
 
@@ -215,8 +234,7 @@ class SearchDialog(QDialog):
         name = self.search_student_name.text()
 
         # Connect to database and create cursor
-        connection = sqlite3.connect("database.db")
-        cursor = connection.cursor()
+        connection, cursor = DatabaseConnection().connect()
 
         # Select all fields that contained query of student name in database
         result = cursor.execute("SELECT * FROM students WHERE name = ?", (name, ))
@@ -234,6 +252,9 @@ class SearchDialog(QDialog):
         # Close cursor and connection to db
         cursor.close()
         connection.close()
+
+        # Close dialog after search
+        self.close()
 
 
 # Dialog Attributes for Edit
@@ -289,8 +310,7 @@ class EditDialog(QDialog):
 
     # Update method
     def update_student(self):
-        connection = sqlite3.connect("database.db")
-        cursor = connection.cursor()
+        connection, cursor = DatabaseConnection().connect()
 
         # Destructure table rows and UPDATE with new values from references in edit fields
         cursor.execute("UPDATE students SET name = ?, course = ?, mobile = ? WHERE id = ?",
@@ -298,13 +318,12 @@ class EditDialog(QDialog):
                         self.course_name.itemText(self.course_name.currentIndex()),
                         self.mobile_number.text(), self.student_id))
 
-        # Update database and close connections
-        connection.commit()
-        cursor.close()
-        connection.close()
+        # Commit changes, Close connection to database and cursor
+        DatabaseConnection().close_connection(connection, cursor)
 
-        # Refresh the table
-        student_management_sys.load_data()
+        # Close dialog after update
+        self.close()
+
 
 
 # Dialog Attributes for Delete
@@ -326,12 +345,12 @@ class DeleteDialog(QDialog):
         self.setLayout(layout)
 
         yes.clicked.connect(self.delete_student)
+        no.clicked.connect(self.close)
 
     # Delete Method
     def delete_student(self):
         # Connect to database
-        connection = sqlite3.connect("database.db")
-        cursor = connection.cursor()
+        connection, cursor = DatabaseConnection().connect()
 
         # Get table row and column of student to edit
         index = student_management_sys.table.currentRow()
@@ -342,20 +361,18 @@ class DeleteDialog(QDialog):
         # Execute SQL DELETE query using student ID
         cursor.execute("DELETE FROM students WHERE id = ?", (student_id, ))
 
-        # Commit changes to db and close connections, refresh app table
-        connection.commit()
-        cursor.close()
-        connection.close()
-        student_management_sys.load_data()
+        # Commit changes, Close connection to database and cursor
+        DatabaseConnection().close_connection(connection, cursor)
 
-        # Close delete dialog window
-        self.close()
 
         # Create a message box to relay deletion was successful
         confirmation_widget = QMessageBox()
         confirmation_widget.setWindowTitle("Success")
         confirmation_widget.setText("The Record Deleted Successfully!")
         confirmation_widget.exec()
+
+        # Close delete dialog window
+        self.close()
 
 
 # About Inheriting from 'QMessageBox' simple child version of a QDialog
