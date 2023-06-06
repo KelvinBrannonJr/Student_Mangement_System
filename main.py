@@ -7,6 +7,8 @@ from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QGridLayout, \
 
 from PyQt6.QtGui import QAction
 
+from PyQt6.QtCore import Qt
+
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -111,6 +113,7 @@ class InsertDialog(QDialog):
 
         self.setLayout(layout)
 
+    # Add Student method
     def add_student(self):
         # Reference to field values stored in variables
         name = self.student_name.text()
@@ -132,6 +135,7 @@ class InsertDialog(QDialog):
         student_management_sys.load_data()
 
 
+# Search Dialog Attributes
 class SearchDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -155,9 +159,31 @@ class SearchDialog(QDialog):
 
         self.setLayout(search_layout)
 
+    # Search Student method
     def search_student(self):
-        pass
+        # Reference to field values stored in variables
+        name = self.search_student_name.text()
 
+        # Connect to database and create cursor
+        connection = sqlite3.connect("database.db")
+        cursor = connection.cursor()
+
+        # Select all fields that contained query of student name in database
+        result = cursor.execute("SELECT * FROM students WHERE name = ?", (name, ))
+        rows = list(result)
+        print(rows)
+
+        # Select all fields in Main window table and find match of student name
+        items = student_management_sys.table.findItems(name, Qt.MatchFlag.MatchFixedString)
+
+        # Highlight all names that match query and print item row to console
+        for item in items:
+            print(item)
+            student_management_sys.table.item(item.row(), 1).setSelected(True)
+
+        # Close cursor and connection to db
+        cursor.close()
+        connection.close()
 
 app = QApplication(sys.argv)
 student_management_sys = MainWindow()
