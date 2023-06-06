@@ -2,7 +2,8 @@ import sqlite3
 import sys
 
 from PyQt6.QtWidgets import QApplication, QLabel, QWidget, QGridLayout, \
-    QLineEdit, QPushButton, QMainWindow, QTableWidget, QTableWidgetItem
+    QLineEdit, QPushButton, QMainWindow, QTableWidget, QTableWidgetItem, QDialog, \
+    QVBoxLayout, QComboBox
 
 from PyQt6.QtGui import QAction
 
@@ -18,6 +19,7 @@ class MainWindow(QMainWindow):
 
         # Add student menu item and action
         add_student_action = QAction("Add Student", self)
+        add_student_action.triggered.connect(self.insert)
         file_menu_item.addAction(add_student_action)
 
         # About menu item and action
@@ -57,6 +59,39 @@ class MainWindow(QMainWindow):
 
         # Close the database connection
         connection.close()
+
+    # Insert new data method call
+    def insert(self):
+        dialog = InsertDialog()
+        dialog.exec()
+
+# Dialog for the Insert method
+class InsertDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+
+        # Set Window Attributes
+        self.setWindowTitle("Insert Student Data")
+        self.setFixedWidth(300)
+        self.setFixedHeight(300)
+
+        layout = QVBoxLayout()
+
+        # Add Student Name widget
+        student_name = QLineEdit()
+        student_name.setPlaceholderText("Name")
+        layout.addWidget(student_name)
+
+        # Add Course ComboBox widget
+        course_name = QComboBox()
+        courses = ["Biology", "Math", "Astronomy", "Physics"]
+        course_name.addItems(courses)
+        layout.addWidget(course_name)
+
+        self.setLayout(layout)
+
+
+
 
 app = QApplication(sys.argv)
 student_management_sys = MainWindow()
