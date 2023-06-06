@@ -39,7 +39,7 @@ class MainWindow(QMainWindow):
 
     def load_data(self):
         # Connect SQL database
-        connection = sqlite3.Connection("database.db")
+        connection = sqlite3.connect("database.db")
         results = connection.execute("SELECT * FROM students")
 
         # Initialize table number to 0
@@ -65,6 +65,7 @@ class MainWindow(QMainWindow):
         dialog = InsertDialog()
         dialog.exec()
 
+
 # Dialog for the Insert method
 class InsertDialog(QDialog):
     def __init__(self):
@@ -78,19 +79,47 @@ class InsertDialog(QDialog):
         layout = QVBoxLayout()
 
         # Add Student Name widget
-        student_name = QLineEdit()
-        student_name.setPlaceholderText("Name")
-        layout.addWidget(student_name)
+        self.student_name = QLineEdit()
+        self.student_name.setPlaceholderText("Name")
+        layout.addWidget(self.student_name)
 
         # Add Course ComboBox widget
-        course_name = QComboBox()
+        self.course_name = QComboBox()
         courses = ["Biology", "Math", "Astronomy", "Physics"]
-        course_name.addItems(courses)
-        layout.addWidget(course_name)
+        self.course_name.addItems(courses)
+        layout.addWidget(self.course_name)
+
+        # Add Mobile Number widget
+        self.mobile_number = QLineEdit()
+        self.mobile_number.setPlaceholderText("Mobile Number")
+        layout.addWidget(self.mobile_number)
+
+        # Submit button
+        submit_btn = QPushButton("Register")
+        submit_btn.clicked.connect(self.add_student)
+        layout.addWidget(submit_btn)
 
         self.setLayout(layout)
 
+    def add_student(self):
+        # Reference to field values stored in variables
+        name = self.student_name.text()
+        course = self.course_name.itemText(self.course_name.currentIndex())
+        mobile = self.mobile_number.text()
 
+        # Connect to database and create cursor
+        connection = sqlite3.connect("database.db")
+        cursor = connection.cursor()
+
+        # Use the cursor to destructure and INSERT reference variables into related db columns
+        cursor.execute("INSERT INTO students (name, course, mobile) VALUES (?, ?, ?)",
+                       (name, course, mobile))
+
+        # Commit changes and close cursor and db connection
+        connection.commit()
+        cursor.close()
+        connection.close()
+        student_management_sys.load_data()
 
 
 app = QApplication(sys.argv)
